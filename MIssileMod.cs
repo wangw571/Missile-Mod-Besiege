@@ -64,9 +64,8 @@ namespace Blocks
 
             if (AddPiece.isSimulating)
             {
-                float angle = Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg;
-                Debug.Log(angle);
 
+                
                 if (launched == false)
                 {
                     if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1))
@@ -75,6 +74,9 @@ namespace Blocks
                         {
                             currentTarget = hitt.transform.gameObject;
                             Debug.Log("Target Acquired!");
+                            diff = (currentTarget.transform.position - this.transform.position);
+                            float angle = Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg;
+                            Debug.Log(angle);
                         }
 
                     }
@@ -103,10 +105,9 @@ namespace Blocks
                     if (Math.Abs(System.DateTime.Now.ToBinary() - launchtime) > this.GetComponent<MyBlockInfo>().sliderValue * 10000000)//Targeting
                     {
                         
-                        diff = (currentTarget.transform.position - this.transform.position);
                         
                         //this.transform.LookAt( new Vector3 (0,currentTarget.transform.position.y,0));
-                        rigidbody.AddTorque((diff.normalized - transform.forward).normalized / 2);
+                        rigidbody.AddTorque(new Vector3(diff.x, diff.y, 0).normalized);
                         toggleEnd = true;
                         if (Vector3.Distance(transform.position, currentTarget.transform.position) <= 3) { boomnow = true; }
                     }
