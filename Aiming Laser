@@ -1,0 +1,136 @@
+using System;
+using System.Collections.Generic;
+using spaar.ModLoader;
+using TheGuysYouDespise;
+using UnityEngine;
+
+namespace Blocks
+{
+    public class LaserAimMod : BlockMod
+    {
+        public override Version Version { get { return new Version("1.0"); } }
+        public override string Name { get { return "LaserAimMod"; } }
+        public override string DisplayName { get { return "LaserAim Mod"; } }
+        public override string BesiegeVersion { get { return "v0.11"; } }
+        public override string Author { get { return "覅是"; } }
+        protected Block laserAim = new Block()
+                .ID(510)
+                .TextureFile("LaserBlock.png")
+                .BlockName("Aim Laser Emitter")
+                .Obj(new List<Obj> { new Obj("LaserBlock.obj", new VisualOffset(Vector3.one, Vector3.zero, Vector3.zero)) })
+                .Scripts(new Type[] { typeof(LaserAim) })
+                .Properties(new BlockProperties().KeyBinding("Laser", "u").
+                                                    ToggleModeEnabled("TOGGLE", false)
+                                                 )
+                .Mass(0.5f)
+                .IconOffset(new Icon(1f, new Vector3(0f, 0f, 0f), new Vector3(-90f, 45f, 0f)))//第一个float是图标缩放，五六七是我找的比较好的角度
+                .ShowCollider(false)
+                .AddingPoints(new List<AddingPoint> { new BasePoint(true, true) })
+                .CompoundCollider(new List<ColliderComposite> { new ColliderComposite(new Vector3(0.5f, 0.5f, 1.5f), new Vector3(0f, 0f, 0.7f), new Vector3(0f, 0f, 0f)) })
+                .NeededResources(new List<NeededResource>()//需要的资源，例如音乐
+
+            );
+        public override void OnLoad()
+        {
+            LoadFancyBlock(laserAim);//加载该模块
+        }
+        public override void OnUnload() { }
+    }
+
+
+    public class LaserAim : BlockScript
+    {
+        private bool LaserIt = false;
+        private GameObject Line;
+        public static GameObject currentAimingTarget;
+        private RaycastHit hitt;
+
+
+        protected override void OnSimulateStart()
+        {
+            Line = new GameObject();
+            Line.transform.parent = this.transform;
+            Line.name = "Laser";
+            Line.AddComponent<LineRenderer>();
+            Line.renderer.material = new Material(Shader.Find("Particles/Additive"));
+            Line.GetComponent<LineRenderer>().SetWidth(0.1f, 0.1f);
+            Line.GetComponent<LineRenderer>().SetColors(Color.Lerp(Color.blue, Color.white, 0.5f), Color.Lerp(Color.blue, Color.white, 0.5f));
+        }
+
+
+        protected override void OnSimulateFixedUpdate()
+        {
+            if (AddPiece.isSimulating)
+            {
+                if (!this.GetComponent<MyBlockInfo>().toggleModeEnabled)
+                {
+                    if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1))
+                    {
+                        Line.GetComponent<LineRenderer>().SetVertexCount(2);
+                        LaserIt = true;
+                    }
+
+                    if (Input.GetKeyUp(this.GetComponent<MyBlockInfo>().key1))
+                    {
+                        Line.GetComponent<LineRenderer>().SetVertexCount(0);
+                        LaserIt = false;
+                    }
+                }
+                else
+                {
+                    if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1) && !LaserIt)
+                    {
+                        Line.GetComponent<LineRenderer>().SetVertexCount(2);
+                        LaserIt = true;
+                        
+                    }
+                    else if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1) && LaserIt)
+                    {
+                        Line.GetComponent<LineRenderer>().SetVertexCount(2);
+                        LaserIt = false;
+                    }
+                }
+            }
+            if (!AddPiece.isSimulating)
+            {
+                Line.GetComponent<LineRenderer>().SetVertexCount(0);
+                LaserIt = false;
+            }
+
+
+            if (LaserIt)
+            {
+                Line.GetComponent<LineRenderer>().SetPosition(0, this.transform.position + this.transform.forward * 2);
+                Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * 500);
+
+                //Line.GetComponent<LineRenderer> ();.SetPosition (2, this.transform.position+this.transform.forward*50);
+
+                Ray ray = new Ray(this.transform.position, this.transform.forward);
+                Debug.Log(LaserIt);
+                if (Physics.Raycast(ray, out hitt, Mathf.Infinity))
+                {
+                    //currentAimingTarget = hitt.point;
+                    currentAimingTarget = hitt.transform.gameObject;
+                }
+            }
+            else
+            {
+                Line.GetComponent<LineRenderer>().SetVertexCount(0);
+            }
+            //Physics stuff
+            Debug.Log(currentAimingTarget);
+        }
+        protected override void OnSimulateExit()
+        {
+            currentAimingTarget = null;
+            //currentAimingTarget = Vector3.zero;
+        }
+    }
+
+
+}
+
+
+
+
+
