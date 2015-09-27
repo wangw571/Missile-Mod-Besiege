@@ -48,7 +48,7 @@ namespace Blocks
         private GameObject currentTarget;
         private bool launched = false;
         public Transform pusher;
-        private long launchtime;
+        private float launchtime;
         private bool boomnow;
         private bool toggleEnd;
         private Vector3 diff;
@@ -62,7 +62,9 @@ namespace Blocks
         protected override void OnSimulateFixedUpdate()
         {
             float angle = 0;
-            //float ContainingTotalLastingTime -= Time.fixedDeltaTime;
+            float myrts = this.transform.rotation.ToEulerAngles().y * Mathf.Rad2Deg;
+            if (myrts >= 180) { myrts = myrts - 360; }
+            //Debug.Log(myrts /*Mathf.Atan2(this.transform.position.x, this.transform.position.z) * Mathf.Rad2Deg*/ /*(this.transform.rotation.ToEulerAngles().y * Mathf.Rad2Deg)*/+ "myD");
             if (AddPiece.isSimulating)
             {
 
@@ -76,25 +78,23 @@ namespace Blocks
                             currentTarget = hitt.transform.gameObject;
                             Debug.Log("Target Acquired!");
                             diff = (currentTarget.transform.position - this.transform.position);
-                            angle = Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg;
-                            Debug.Log(angle);
+                            //Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
                         }
-
                     }
-                    if (currentTarget != null)
-                    {
+                    
                         if (Input.GetKey(this.GetComponent<MyBlockInfo>().key2))
                         {
+                        if (currentTarget != null)
+                        {
                             launched = true;
-                            Debug.Log("launched!");
-                            launchtime = System.DateTime.Now.ToBinary();
-                            this.GetComponent<ExplodeOnCollide>().radius = 7f;
+                            //Debug.Log("launched!");
                         }
                     }
                     else { launched = false; }
                 }
                 if (launched == true && boomnow == false)
                 {
+                    launchtime += Time.fixedDeltaTime;
                     //   Debug.Log((currentTarget.transform.position - this.transform.forward) + "fwd");
                     //    Debug.Log((currentTarget.transform.position - this.transform.position) + "pos");
                     this.GetComponent<FireTag>().Ignite();
@@ -103,25 +103,37 @@ namespace Blocks
                     {
                         rigidbody.AddForce(new Vector3(0, 0.3f * sv, 0));
                     }
-                    if (Math.Abs(System.DateTime.Now.ToBinary() - launchtime) > this.GetComponent<MyBlockInfo>().sliderValue * 10000000)//Targeting
+                    diff = (currentTarget.transform.position - this.transform.position);
+                    Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
+                    if (launchtime > this.GetComponent<MyBlockInfo>().sliderValue)//Targeting
                     {
 
-
-                        //this.transform.LookAt( new Vector3 (0,currentTarget.transform.position.y,0));
-                        /*if (angle > 0){
+                        
+                        angle = (Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg - myrts);
+                        Debug.Log(angle + "toD");
+                        if (currentTarget.transform.position.y - this.transform.position.y >= 5) {
+                            this.transform.LookAt(new Vector3(this.transform.position.x, currentTarget.transform.position.y, this.transform.position.z));
+                        }
+                        if (angle > 0){
                             if (angle < 20)
                             {
-                                this.transform.Rotate(transform.up * 5);
+                                this.transform.Rotate(Vector3.up * (5f * (angle / 20))/*, ForceMode.Acceleration*/); Debug.Log("pp");
                             }
-                            else { this.transform.Rotate(transform.up * 5); }
+                            else { this.transform.Rotate(Vector3.up * 5f/*, ForceMode.Acceleration*/); Debug.Log("p"); }
                         }
-                        else {}*/
-                        diff = (currentTarget.transform.position - this.transform.position);
-                        rigidbody.AddTorque(new Vector3(diff.x, diff.y, 0).normalized);
+                        else {
+                            if (angle > -20)
+                            {
+                                this.transform.Rotate(Vector3.up * (-5f * (angle / -20))/*, ForceMode.Acceleration*/); Debug.Log("nn");
+                            }
+                            else { /*rigidbody.AddTorque*/this.transform.Rotate(Vector3.up *-5f/*, ForceMode.Acceleration*/);Debug.Log("n"); }
+                        }
+                        
+                        //rigidbody.AddTorque(new Vector3(diff.x, 0, diff.z).normalized);
                         toggleEnd = true;
                         if (Vector3.Distance(transform.position, currentTarget.transform.position) <= 3) { boomnow = true; }
                     }
-                    if (Math.Abs(System.DateTime.Now.ToBinary() - launchtime) > 100000000) { boomnow = true; }
+                    if (launchtime > 10) { boomnow = true; }
                 }
                 if (this.GetComponent<BlockHealthBar>().health == 0 && launched == false)
                 {
@@ -136,7 +148,7 @@ namespace Blocks
                     UnityEngine.Object.Destroy(component.GetComponent<Rigidbody>());
                     component.AddComponent<Rigidbody>();
                     component.gameObject.AddComponent<KillIfEditMode>();
-                    component.GetComponent<ExplodeOnCollide>().radius = 7f;
+                    component.GetComponent<ExplodeOnCollide>().radius = -20f;
                     component.GetComponent<FireTag>().Ignite();
                     UnityEngine.Object.DestroyImmediate(this.gameObject);
                 }
