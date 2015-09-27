@@ -19,7 +19,7 @@ namespace Blocks
                 .BlockName("Missile")
                 .Obj(new List<Obj> { new Obj("k191.obj", new VisualOffset(Vector3.one, Vector3.zero, Vector3.zero)) })
                 .Scripts(new Type[] { typeof(missile) })
-                .Properties(new BlockProperties().Key1("Acquire", "t").Key2("Launch", "x")
+                .Properties(new BlockProperties().Key1("Boom", "k").Key2("Launch", "x")
                                                  .Burnable(10)
                                                  .CanBeDamaged(3)
                                                  .ToggleModeEnabled("Extra Lift Force", false)
@@ -52,6 +52,7 @@ namespace Blocks
         private bool boomnow;
         private bool toggleEnd;
         private Vector3 diff;
+        private bool uped = false;
 
         protected override void OnSimulateStart()
         {
@@ -67,21 +68,8 @@ namespace Blocks
             //Debug.Log(myrts /*Mathf.Atan2(this.transform.position.x, this.transform.position.z) * Mathf.Rad2Deg*/ /*(this.transform.rotation.ToEulerAngles().y * Mathf.Rad2Deg)*/+ "myD");
             if (AddPiece.isSimulating)
             {
-
-                
                 if (launched == false)
                 {
-                    if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1))
-                    {
-                        if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitt, float.PositiveInfinity))
-                        {
-                            currentTarget = hitt.transform.gameObject;
-                            Debug.Log("Target Acquired!");
-                            diff = (currentTarget.transform.position - this.transform.position);
-                            //Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
-                        }
-                    }
-                    
                         if (Input.GetKey(this.GetComponent<MyBlockInfo>().key2))
                         {
                         if (currentTarget != null)
@@ -94,39 +82,52 @@ namespace Blocks
                 }
                 if (launched == true && boomnow == false)
                 {
+                    if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1))
+                    {
+                        boomnow = true;
+                    }
+
                     launchtime += Time.fixedDeltaTime;
                     //   Debug.Log((currentTarget.transform.position - this.transform.forward) + "fwd");
                     //    Debug.Log((currentTarget.transform.position - this.transform.position) + "pos");
                     this.GetComponent<FireTag>().Ignite();
                     rigidbody.AddForce(transform.forward * sv);
-                    if (this.GetComponent<MyBlockInfo>().toggleModeEnabled == true)//Extra Lift
+                    if (this.GetComponent<MyBlockInfo>().toggleModeEnabled == true ^ this.transform.position.y < 2)//Extra Lift
                     {
-                        rigidbody.AddForce(new Vector3(0, 0.3f * sv, 0));
+                        rigidbody.AddForce(new Vector3(0, 0.3f * sv, 0),ForceMode.VelocityChange);
                     }
                     diff = (currentTarget.transform.position - this.transform.position);
-                    Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
+                    //Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
                     if (launchtime > this.GetComponent<MyBlockInfo>().sliderValue)//Targeting
                     {
-
+                        if (Math.Abs(launchtime-1) < 0.2  ^ currentTarget.transform.position.y - this.transform.position.y <= -20) { this.transform.LookAt(currentTarget.transform.position); }
                         
                         angle = (Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg - myrts);
-                        Debug.Log(angle + "toD");
-                        if (currentTarget.transform.position.y - this.transform.position.y >= 5) {
+                        //Debug.Log(angle + "toD");
+                        if (currentTarget.transform.position.y >= this.transform.position.y)
+                        {
+                            Debug.Log("UP!");
                             this.transform.LookAt(new Vector3(this.transform.position.x, currentTarget.transform.position.y, this.transform.position.z));
+                            uped = true;
+                        }
+                        else  if (uped == true)
+                        {
+                            this.transform.LookAt(currentTarget.transform.position);
+                            uped = false;
                         }
                         if (angle > 0){
-                            if (angle < 20)
+                            if (angle < 2)
                             {
-                                this.transform.Rotate(Vector3.up * (5f * (angle / 20))/*, ForceMode.Acceleration*/); Debug.Log("pp");
+                                this.transform.Rotate(Vector3.up * (1f * (angle / 2))/*, ForceMode.Acceleration*/); Debug.Log("pp");
                             }
-                            else { this.transform.Rotate(Vector3.up * 5f/*, ForceMode.Acceleration*/); Debug.Log("p"); }
+                            else { this.transform.Rotate(Vector3.up * 1f/*, ForceMode.Acceleration*/); Debug.Log("p"); }
                         }
                         else {
-                            if (angle > -20)
+                            if (angle > -2)
                             {
-                                this.transform.Rotate(Vector3.up * (-5f * (angle / -20))/*, ForceMode.Acceleration*/); Debug.Log("nn");
+                                this.transform.Rotate(Vector3.up * (-1f * (angle / -2))/*, ForceMode.Acceleration*/); Debug.Log("nn");
                             }
-                            else { /*rigidbody.AddTorque*/this.transform.Rotate(Vector3.up *-5f/*, ForceMode.Acceleration*/);Debug.Log("n"); }
+                            else { /*rigidbody.AddTorque*/this.transform.Rotate(Vector3.up *-1f/*, ForceMode.Acceleration*/);Debug.Log("n"); }
                         }
                         
                         //rigidbody.AddTorque(new Vector3(diff.x, 0, diff.z).normalized);
@@ -148,7 +149,7 @@ namespace Blocks
                     UnityEngine.Object.Destroy(component.GetComponent<Rigidbody>());
                     component.AddComponent<Rigidbody>();
                     component.gameObject.AddComponent<KillIfEditMode>();
-                    component.GetComponent<ExplodeOnCollide>().radius = -20f;
+                    component.GetComponent<ExplodeOnCollide>().radius = 7f;
                     component.GetComponent<FireTag>().Ignite();
                     UnityEngine.Object.DestroyImmediate(this.gameObject);
                 }
@@ -158,7 +159,7 @@ namespace Blocks
             }
         void OnCollisionEnter(Collision collision)
         {
-            if (launched == true && toggleEnd == true)
+            if (launched == true && toggleEnd == true && launchtime > 0.1)
             {
                 boomnow = true;
             }
