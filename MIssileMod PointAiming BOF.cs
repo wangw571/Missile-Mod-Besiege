@@ -53,12 +53,18 @@ namespace Blocks
         private bool toggleEnd;
         private Vector3 diff;
         private bool uped = false;
+        private string key1;
+        private string key2;
+        private float sliderValve;
 
         protected override void OnSimulateStart()
         {
             sv = 30;
             boomnow = false;
             toggleEnd = false;
+            key1 = this.GetComponent<MyBlockInfo>().key1;
+            key2 = this.GetComponent<MyBlockInfo>().key2;
+            sliderValve = this.GetComponent<MyBlockInfo>().sliderValue;
         }
         protected override void OnSimulateFixedUpdate()
         {
@@ -68,7 +74,7 @@ namespace Blocks
             //Debug.Log(myrts /*Mathf.Atan2(this.transform.position.x, this.transform.position.z) * Mathf.Rad2Deg*/ /*(this.transform.rotation.ToEulerAngles().y * Mathf.Rad2Deg)*/+ "myD");
             if (AddPiece.isSimulating)
             {
-                if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1))
+                if (Input.GetKey(key1))
                 {
                     if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitt, float.PositiveInfinity))
                     {
@@ -79,9 +85,9 @@ namespace Blocks
                 if (launched == false)
                 {
                     
-                    if (Input.GetKey(this.GetComponent<MyBlockInfo>().key2))
+                    if (Input.GetKey(key2))
                         {
-                        if (currentTarget != null)
+                        if (currentTarget != Vector3.zero)
                         {
                             launched = true;
                         }
@@ -101,7 +107,7 @@ namespace Blocks
                     }
                     diff = (currentTarget - this.transform.position);
                     //Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
-                    if (launchtime > this.GetComponent<MyBlockInfo>().sliderValue)//Targeting
+                    if (launchtime > sliderValve)//Targeting
                     {
                         if (Math.Abs(launchtime-1) < 0.2  ^ currentTarget.y - this.transform.position.y <= -20) { this.transform.LookAt(currentTarget); }
                         
@@ -135,11 +141,11 @@ namespace Blocks
                         
                         //rigidbody.AddTorque(new Vector3(diff.x, 0, diff.z).normalized);
                         toggleEnd = true;
-                        if (Vector3.Distance(transform.position, currentTarget) <= 3) { boomnow = true; }
+                        if (Vector3.Distance(transform.position, currentTarget) <= 5) { boomnow = true; }
                     }
                     if (launchtime > 10) { boomnow = true; }
                 }
-                if (this.GetComponent<BlockHealthBar>().health == 0 && launched == false)
+                if (this.IsBurning() && launched == false)
                 {
                     boomnow = true;
                 }
@@ -152,7 +158,7 @@ namespace Blocks
                     UnityEngine.Object.Destroy(component.GetComponent<Rigidbody>());
                     component.AddComponent<Rigidbody>();
                     component.gameObject.AddComponent<KillIfEditMode>();
-                    component.GetComponent<ExplodeOnCollide>().radius = 7f;
+                    component.GetComponent<ExplodeOnCollide>().radius = 10f;
                     component.GetComponent<FireTag>().Ignite();
                     UnityEngine.Object.DestroyImmediate(this.gameObject);
                 }
@@ -176,8 +182,3 @@ namespace Blocks
 
 
     }
-
-
-
-
-
