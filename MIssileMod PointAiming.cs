@@ -90,11 +90,6 @@ namespace Blocks
                 }
                 if (launched == true && boomnow == false)
                 {
-                    if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1))
-                    {
-                        boomnow = true;
-                    }
-
                     launchtime += Time.fixedDeltaTime;
                     //   Debug.Log((currentTarget.transform.position - this.transform.forward) + "fwd");
                     //    Debug.Log((currentTarget.transform.position - this.transform.position) + "pos");
