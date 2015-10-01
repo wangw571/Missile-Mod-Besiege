@@ -86,6 +86,7 @@ namespace Blocks
             if (myrts >= 180) { myrts = myrts - 360; }
             //Debug.Log(Physics.gravity); 32.8
             Debug.Log(mode + "Mode");
+            Debug.Log(myrts);
             /*ExplosionEffect[] vector3E = UnityEngine.Object.FindObjectsOfType<ExplosionEffect>();
             for (int i = 0; i < (int)vector3E.Length; i++)
             {
@@ -101,6 +102,7 @@ namespace Blocks
                     {
                         currentTarget = hitt.transform.gameObject;
                         Debug.Log("Target Acquired!");
+                        Debug.Log(Vector3.Angle(new Vector3(currentTarget.transform.position.x, this.transform.position.x, currentTarget.transform.position.z), currentTarget.transform.position).ToString());
                     }
                 }
                 if (发射 == false)
@@ -124,17 +126,20 @@ namespace Blocks
                 }//按键
                     if (发射 == true && 炸 == false)
                     {
-                        launchtime += Time.fixedDeltaTime;
+                    Debug.Log(Vector3.Angle(new Vector3(currentTarget.transform.position.x, this.transform.position.x, currentTarget.transform.position.z), currentTarget.transform.position).ToString());
+
+                    launchtime += Time.fixedDeltaTime;
                         this.GetComponent<FireTag>().Ignite();//点火
                         rigidbody.AddForce(transform.forward * sv);
                         sv += 1;
+                    if (sv > 200) { sv = 200; }
                         diff = (currentTarget.transform.position - this.transform.position);
                         //Debug.Log(Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg);
                         angle = (Mathf.Atan2(diff.x, diff.z) * Mathf.Rad2Deg/* - myrts*/);
 
 
                         if (launchtime > sliderValve)//Targeting
-                        {}
+                        {
                     if (mode == 4) {//运行模式判断
                         if (currentTarget.transform.position.y > 5) { mode = 1; Debug.Log(mode + "Mode"); }
                         else if (Math.Abs(currentTarget.rigidbody.velocity.x) + Math.Abs(currentTarget.rigidbody.velocity.y) + Math.Abs(currentTarget.rigidbody.velocity.z) > 15) { mode = 3; Debug.Log(mode + "Mode"); }
@@ -144,9 +149,74 @@ namespace Blocks
 
 
                     if (mode == 1) {
-
-
-                    }//低高度模式
+                            if (弹道高度 != 0 && !转为俯冲姿态)//保持飞行
+                            {
+                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 10) { 转为俯冲姿态 = true; }
+                                yC = 弹道高度 - this.transform.position.y;
+                                //角度计算
+                                if (Math.Abs(myrts) > 90)
+                                {
+                                    if (Math.Abs(angle - myrts) < 2)//正负问题
+                                    {
+                                        xC = 10;
+                                        zC = (float)Math.Tan(angle + myrts / 2) * xC;    //this.transform.Rotate(Vector3.up * (0.5f * (angle / 2))/*, ForceMode.Acceleration*/);
+                                    }
+                                    else
+                                    {
+                                        xC = 10;
+                                        zC = (float)Math.Tan(2 + myrts) * xC;
+                                    }
+                                }
+                                else
+                                {
+                                    if (Math.Abs(angle - myrts) < 2)
+                                    {
+                                        xC = -10;
+                                        zC = (float)Math.Tan(angle + myrts / 2) * xC;
+                                    }
+                                    else
+                                    {
+                                        xC = -10;
+                                        zC = (float)Math.Tan(15 + myrts) * xC;
+                                    }
+                                }//计算完毕
+                                if (this.rigidbody.velocity.y < -2) { sv += 2; }
+                                else if (this.rigidbody.velocity.y > 7) { sv -= 1; }
+                            }
+                            else if (!转为俯冲姿态) { 弹道高度 = 5;/*尝试每隔1y就检测有没有障碍物*/ }//当没有在俯冲而且弹道高度=0的时候
+                            else
+                            {
+                                yC = diff.y;
+                                //角度计算
+                                if (Math.Abs(myrts) > 90)
+                                {
+                                    if (Math.Abs(angle - myrts) < 2)//正负问题
+                                    {
+                                        xC = 10;
+                                        zC = (float)Math.Tan(angle + myrts / 2) * xC;    //this.transform.Rotate(Vector3.up * (0.5f * (angle / 2))/*, ForceMode.Acceleration*/);
+                                    }
+                                    else
+                                    {
+                                        xC = 10;
+                                        zC = (float)Math.Tan(2 + myrts) * xC;
+                                    }
+                                }
+                                else
+                                {
+                                    if (Math.Abs(angle - myrts) < 2)
+                                    {
+                                        xC = -10;
+                                        zC = (float)Math.Tan(angle + myrts / 2) * xC;
+                                    }
+                                    else
+                                    {
+                                        xC = -10;
+                                        zC = (float)Math.Tan(15 + myrts) * xC;
+                                    }
+                                }//计算完毕
+                            }//开始俯冲，将目光放在目标上
+                            if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) > 15) { 转为俯冲姿态 = false; if (diff.y > 7) { mode = 1; 弹道高度 = 0; } }//当超过目标太远，重设姿态
+                        }//低高度模式
 
 
                     else if (mode == 2)
@@ -155,17 +225,17 @@ namespace Blocks
                             if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 10) { 转为俯冲姿态 = true; }
                             yC = 弹道高度 - this.transform.position.y;
                             //角度计算
-                                                        if (Math.Abs(myrts) > 90)
+                            if (Math.Abs(myrts) > 90)
                             {
                                 if (Math.Abs(angle - myrts) < 2)//正负问题
                                 {
-                                    xC = yC;
+                                    xC = 10;
                                     zC = (float)Math.Tan(angle + myrts / 2) * xC;    //this.transform.Rotate(Vector3.up * (0.5f * (angle / 2))/*, ForceMode.Acceleration*/);
                                 }
                                 else
                                 {
-                                    xC = yCC;
-                                    zC = (float)Math.Tan(15 + myrts) * xC;
+                                    xC = 10;
+                                    zC = (float)Math.Tan(2 + myrts) * xC;
                                 }
                             }
                             else
@@ -185,19 +255,19 @@ namespace Blocks
                             else if (this.rigidbody.velocity.y > 7) { sv -= 1; }
                         }
                         else if (!转为俯冲姿态) { 弹道高度 = this.transform.position.y; }//当没有在俯冲而且弹道高度=0的时候
-                        else {yC = -diff.y;
+                        else {yC = diff.y;
                             //角度计算
                             if (Math.Abs(myrts) > 90)
                             {
                                 if (Math.Abs(angle - myrts) < 2)//正负问题
                                 {
-                                    xC = yC;
+                                    xC = 10;
                                     zC = (float)Math.Tan(angle + myrts / 2) * xC;    //this.transform.Rotate(Vector3.up * (0.5f * (angle / 2))/*, ForceMode.Acceleration*/);
                                 }
                                 else
                                 {
-                                    xC = yCC;
-                                    zC = (float)Math.Tan(15 + myrts) * xC;
+                                    xC = 10;
+                                    zC = (float)Math.Tan(2 + myrts) * xC;
                                 }
                             }
                             else
@@ -254,13 +324,13 @@ namespace Blocks
                             {
                                 if (Math.Abs(angle - myrts) < 2)//正负问题
                                 {
-                                    xC = yC;
+                                    xC = 10;
                                     zC = (float)Math.Tan(angle + myrts / 2) * xC;    //this.transform.Rotate(Vector3.up * (0.5f * (angle / 2))/*, ForceMode.Acceleration*/);
                                 }
                                 else
                                 {
-                                    xC = yCC;
-                                    zC = (float)Math.Tan(15 + myrts) * xC;
+                                    xC = 10;
+                                    zC = (float)Math.Tan(2 + myrts) * xC;
                                 }
                             }
                             else
@@ -332,7 +402,7 @@ namespace Blocks
                                 else
                                 {
                                     xC = 10;
-                                    zC = (float)Math.Tan(15 + myrts) * xC;
+                                    zC = (float)Math.Tan(2 + myrts) * xC;
                                 }
                             }
                             else
@@ -396,6 +466,7 @@ namespace Blocks
                             lookhere.x += xC;
                             lookhere.z += zC;
                             this.transform.LookAt(lookhere);
+                        }
                             if (this.transform.rigidbody.velocity.y < -3) { sv += 2; }
                             if (Vector3.Distance(transform.position, currentTarget.transform.position) <= 3) { 炸 = true; }
                         
