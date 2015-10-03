@@ -8,8 +8,8 @@ namespace Blocks
 {
     public class MissileMod : BlockMod
     {
-        public override Version Version { get { return new Version("2.0"); } }
-        public override string Name { get { return "MissileMod"; } }
+        public override Version Version { get { return new Version("2.1"); } }
+        public override string Name { get { return "MissileMod :Advanced Aiming(No rotating limit)"; } }
         public override string DisplayName { get { return "Missile Mod"; } }
         public override string BesiegeVersion { get { return "v0.11"; } }
         public override string Author { get { return "覅是"; } }
@@ -30,8 +30,8 @@ namespace Blocks
                 .ShowCollider(false)
                 .AddingPoints(new List<AddingPoint> {new BasePoint(true,false)})
                 .CompoundCollider(new List<ColliderComposite>{ /*new ColliderComposite (0.5f, 1f, 0, new Vector3(0, 0, 0.7f), new Vector3(0, 0, 0)),*/new ColliderComposite(new Vector3(0.7f, 0.7f, 1.3f), new Vector3(0f, 0f, 0.8f), new Vector3(0f, 0f, 0f)) })
-                .NeededResources(new List<NeededResource>()//需要的资源，例如音乐
-                
+                .NeededResources(new List<NeededResource> { new NeededResource(ResourceType.Audio, "missleLaunch.ogg") }//需要的资源，例如音乐
+
             );
         public override void OnLoad()
         {
@@ -54,7 +54,6 @@ namespace Blocks
         private bool 炸;
         private Vector3 diff;
         private Vector3 difftgt;
-        private bool uped = false;
         private string key1;
         private string key2;
         private float sliderValve;
@@ -62,6 +61,7 @@ namespace Blocks
         private bool 检测错过;
         private float 弹道高度;
         private int mode;//0-top attack 1-low height high target  2- high height low target 3-follow  4-null
+        private AudioSource Audio;
 
 
 
@@ -80,26 +80,24 @@ namespace Blocks
             currentTarget = null;
             
             发射 = false;
+
+            Audio = this.gameObject.AddComponent<AudioSource>();
+            Audio.clip = new WWW("File:///" + Application.dataPath + "/Mods/Blocks/Resources/missleLaunch.ogg").audioClip;
+            Audio.loop = false;
+            Audio.volume = 200;
         }
         protected override void OnSimulateFixedUpdate()
         {
-            ExplosionEffect[] vector3E = UnityEngine.Object.FindObjectsOfType<ExplosionEffect>();
-            foreach (ExplosionEffect col in vector3E)
-            {
-                col.maxSize = new Vector3(70f, 70f, 70f);
-            }
-
             if (AddPiece.isSimulating)
             {
                 if (Input.GetKey(key1))
                 {
                     if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitt, float.PositiveInfinity))
                     {
-                        currentTarget = hitt.transform.gameObject;
+                        currentTarget = hitt.transform.gameObject; 
                         difftgt = currentTarget.transform.position - hitt.point;
-                        Debug.Log(hitt.point);
                         targetPoint = currentTarget.transform.position - difftgt;
-                        Debug.Log("Target Acquired!");
+                        Debug.Log("Target Acquired! ");
                     }
                 }
                 if (发射 == false)
@@ -110,7 +108,7 @@ namespace Blocks
                         if (currentTarget != null)
                         {
                             发射 = true;
-
+                            Audio.Play();
                             Ray 阻碍检测ray = new Ray(this.transform.position, targetPoint);
                             if (Physics.Raycast(阻碍检测ray, out hitt2, Mathf.Infinity))
                             { if (hitt2.transform.gameObject != currentTarget ^ !this.GetComponent<MyBlockInfo>().toggleModeEnabled)
@@ -150,6 +148,7 @@ namespace Blocks
                                 this.transform.LookAt(targetPoint);
                             }
                             else if (!转为俯冲姿态) {
+                                弹道高度 = 3;
                                 int i = 0;
                                 do {
                                     RaycastHit hitt3;
@@ -234,6 +233,7 @@ namespace Blocks
                     {//攻顶模式
                         if (转为俯冲姿态 == true)
                         {
+                                //this.transform.position.RotateTowards(this.transform.position,targetPoint,2f,Mathf.Infinity);
                                 this.transform.LookAt(targetPoint);
                                 sv = 95;
                                 if (diff.y > 10) { 转为俯冲姿态 = false; }
@@ -274,11 +274,10 @@ namespace Blocks
                         component.AddComponent<Rigidbody>();
                         component.gameObject.AddComponent<KillIfEditMode>();
                         component.GetComponent<ExplodeOnCollide>().radius = 12f;
-                        component.GetComponent<FireTag>().Ignite();
-                        UnityEngine.Object.DestroyImmediate(this.gameObject);
-                    }
+                    component.GetComponent<FireTag>().Ignite();
+                    UnityEngine.Object.DestroyImmediate(this.gameObject);
                 }
-                else { }
+                }
                 //Physics stuff
             
         }
