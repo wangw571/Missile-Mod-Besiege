@@ -8,7 +8,7 @@ namespace Blocks
 {
     public class LaserAimMod : BlockMod
     {
-        public override Version Version { get { return new Version("1.0"); } }
+        public override Version Version { get { return new Version("2.0"); } }
         public override string Name { get { return "LaserAimMod"; } }
         public override string DisplayName { get { return "LaserAim Mod"; } }
         public override string BesiegeVersion { get { return "v0.11"; } }
@@ -27,7 +27,7 @@ namespace Blocks
                 .ShowCollider(false)
                 .AddingPoints(new List<AddingPoint> { new BasePoint(true, true) })
                 .CompoundCollider(new List<ColliderComposite> { new ColliderComposite(new Vector3(0.5f, 0.5f, 1.5f), new Vector3(0f, 0f, 0.7f), new Vector3(0f, 0f, 0f)) })
-                .NeededResources(new List<NeededResource>()//需要的资源，例如音乐
+                .NeededResources(new List<NeededResource>{ new NeededResource(ResourceType.Audio, "laserHum.ogg") }//需要的资源，例如音乐
 
             );
         public override void OnLoad()
@@ -43,8 +43,11 @@ namespace Blocks
         private bool LaserIt = false;
         private GameObject Line;
         public static GameObject currentAimingTarget;
+        public static Vector3 targetPoint;
+        private static Vector3 currentEndingPoint;
         private RaycastHit hitt;
-
+        private AudioSource Audio;
+        private string key1;
 
         protected override void OnSimulateStart()
         {
@@ -54,7 +57,16 @@ namespace Blocks
             Line.AddComponent<LineRenderer>();
             Line.renderer.material = new Material(Shader.Find("Particles/Additive"));
             Line.GetComponent<LineRenderer>().SetWidth(0.1f, 0.1f);
-            Line.GetComponent<LineRenderer>().SetColors(Color.Lerp(Color.blue, Color.white, 0.5f), Color.Lerp(Color.blue, Color.white, 0.5f));
+            Line.GetComponent<LineRenderer>().SetColors(Color.Lerp(Color.blue, Color.white, 0.5f), Color.Lerp(Color.blue, Color.black, 0.5f));
+
+            key1 = this.GetComponent<MyBlockInfo>().key1;
+
+            Audio = this.gameObject.AddComponent<AudioSource>();
+            Audio.clip = new WWW("File:///" + Application.dataPath + "/Mods/Blocks/Resources/laserHum.ogg").audioClip;
+            Audio.loop = false;
+            Audio.volume = 200;
+            targetPoint = Vector3.zero;
+            currentAimingTarget = null;
         }
 
 
@@ -64,13 +76,13 @@ namespace Blocks
             {
                 if (!this.GetComponent<MyBlockInfo>().toggleModeEnabled)
                 {
-                    if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1))
+                    if (Input.GetKeyDown(key1))
                     {
                         Line.GetComponent<LineRenderer>().SetVertexCount(2);
                         LaserIt = true;
                     }
 
-                    if (Input.GetKeyUp(this.GetComponent<MyBlockInfo>().key1))
+                    if (Input.GetKeyUp(key1))
                     {
                         Line.GetComponent<LineRenderer>().SetVertexCount(0);
                         LaserIt = false;
@@ -78,18 +90,19 @@ namespace Blocks
                 }
                 else
                 {
-                    if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1) && !LaserIt)
+                    if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1) && !LaserIt)
                     {
                         Line.GetComponent<LineRenderer>().SetVertexCount(2);
                         LaserIt = true;
                         
                     }
-                    else if (Input.GetKeyDown(this.GetComponent<MyBlockInfo>().key1) && LaserIt)
+                    else if (Input.GetKey(this.GetComponent<MyBlockInfo>().key1) && LaserIt)
                     {
                         Line.GetComponent<LineRenderer>().SetVertexCount(2);
                         LaserIt = false;
                     }
                 }
+
             }
             if (!AddPiece.isSimulating)
             {
@@ -100,25 +113,32 @@ namespace Blocks
 
             if (LaserIt)
             {
-                Line.GetComponent<LineRenderer>().SetPosition(0, this.transform.position + this.transform.forward * 2);
-                Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * 500);
-
+                Audio.Play();
+                Line.GetComponent<LineRenderer>().SetPosition(0, this.transform.position + this.transform.forward * 1.5f);
+                if (currentAimingTarget != null)
+                {
+                    Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * Vector3.Distance(currentEndingPoint, this.transform.position));
+                }
+                else { Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * Mathf.Infinity); }
                 //Line.GetComponent<LineRenderer> ();.SetPosition (2, this.transform.position+this.transform.forward*50);
 
                 Ray ray = new Ray(this.transform.position, this.transform.forward);
-                Debug.Log(LaserIt);
+                //Debug.Log(LaserIt);
                 if (Physics.Raycast(ray, out hitt, Mathf.Infinity))
                 {
                     //currentAimingTarget = hitt.point;
                     currentAimingTarget = hitt.transform.gameObject;
+                    currentEndingPoint = hitt.point;
+                    targetPoint = hitt.point;
                 }
             }
             else
             {
                 Line.GetComponent<LineRenderer>().SetVertexCount(0);
+                Audio.Stop();
             }
             //Physics stuff
-            Debug.Log(currentAimingTarget);
+           // Debug.Log(currentAimingTarget);
         }
         protected override void OnSimulateExit()
         {
