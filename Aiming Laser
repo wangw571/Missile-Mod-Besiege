@@ -43,9 +43,11 @@ namespace Blocks
         private bool LaserIt = false;
         private GameObject Line;
         public static GameObject currentAimingTarget;
+        private static GameObject isThereAOBJ;
         public static Vector3 targetPoint;
         private static Vector3 currentEndingPoint;
         private RaycastHit hitt;
+        private RaycastHit hitt2;
         private AudioSource Audio;
         private string key1;
 
@@ -66,7 +68,9 @@ namespace Blocks
             Audio.loop = false;
             Audio.volume = 200;
             targetPoint = Vector3.zero;
+            currentEndingPoint = Vector3.zero;
             currentAimingTarget = null;
+            
         }
 
 
@@ -115,11 +119,11 @@ namespace Blocks
             {
                 Audio.Play();
                 Line.GetComponent<LineRenderer>().SetPosition(0, this.transform.position + this.transform.forward * 1.5f);
-                if (currentAimingTarget != null)
+                if (isThereAOBJ != null)
                 {
                     Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * Vector3.Distance(currentEndingPoint, this.transform.position));
                 }
-                else { Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * Mathf.Infinity); }
+                else { Line.GetComponent<LineRenderer>().SetPosition(1, this.transform.position + this.transform.forward * 5000f); }
                 //Line.GetComponent<LineRenderer> ();.SetPosition (2, this.transform.position+this.transform.forward*50);
 
                 Ray ray = new Ray(this.transform.position, this.transform.forward);
@@ -130,6 +134,12 @@ namespace Blocks
                     currentAimingTarget = hitt.transform.gameObject;
                     currentEndingPoint = hitt.point;
                     targetPoint = hitt.point;
+                }
+                Ray ray2 = new Ray(this.transform.position, this.transform.forward);
+                //Debug.Log(LaserIt);
+                if (Physics.Raycast(ray2, out hitt2, Mathf.Infinity))
+                {
+                    isThereAOBJ = hitt.transform.gameObject;
                 }
             }
             else
