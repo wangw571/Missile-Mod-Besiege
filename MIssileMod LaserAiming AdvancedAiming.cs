@@ -45,7 +45,6 @@ namespace Blocks
     {
         public float sv;
         public float svplus;
-        private RaycastHit hitt2;
         private Vector3 targetPoint;
         private Vector3 tempTargetPoint;
         private GameObject currentAimingTarget;
@@ -99,14 +98,6 @@ namespace Blocks
                         {
                             发射 = true;
                             Audio.Play();
-                            Ray 阻碍检测ray = new Ray(this.transform.position, targetPoint);
-                            if (Physics.Raycast(阻碍检测ray, out hitt2, Mathf.Infinity))
-                            {
-                                if (hitt2.transform.gameObject != currentAimingTarget ^ !this.GetComponent<MyBlockInfo>().toggleModeEnabled)
-                                {
-                                    mode = 0;
-                                }
-                            }
                         }
                         else { 发射 = false; }
                     }
@@ -128,24 +119,25 @@ namespace Blocks
                     {
                         if (mode == 4)
                         {//运行模式判断
-                            if (targetPoint.y > 5) { mode = 1; Debug.Log(mode + "Mode"); }
+                            if (targetPoint.y > 10) { mode = 1; Debug.Log(mode + "Mode"); }
                             else if (Math.Abs(currentAimingTarget.rigidbody.velocity.x) + Math.Abs(currentAimingTarget.rigidbody.velocity.y) + Math.Abs(currentAimingTarget.rigidbody.velocity.z) > 15) { mode = 3; Debug.Log(mode + "Mode"); }
-                            else if (targetPoint.y < 5) { mode = 2; Debug.Log(mode + "Mode"); }
+                            else if (-diff.y < 10 && targetPoint.y > 3) { mode = 2; Debug.Log(mode + "Mode"); }
                             else { mode = 0; Debug.Log(mode + "Mode"); }
-                        }
-
+                            if (this.GetComponent<MyBlockInfo>().toggleModeEnabled) { mode = 0; Debug.Log(mode + "Mode"); }
+                        }//稍稍修改一下就好
+                        
 
                         if (mode == 1)
                         {
                             if (弹道高度 != 0 && !转为俯冲姿态)//保持飞行
                             {
                                 if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 30) { 转为俯冲姿态 = true; }
-                                this.rigidbody.AddForce(new Vector3(0, (this.transform.position.y - 弹道高度), 0));
+                                this.rigidbody.AddForce(new Vector3(0, -(this.transform.position.y - 弹道高度), 0));
                                 this.transform.LookAt(targetPoint);
                             }
                             else if (!转为俯冲姿态)
                             {
-                                弹道高度 = 5;
+                                弹道高度 = 10;
                                 int i = 0;
                                 do
                                 {
@@ -172,11 +164,11 @@ namespace Blocks
                         {
                             if (弹道高度 != 0 && !转为俯冲姿态)//保持飞行
                             {
-                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 30) { 转为俯冲姿态 = true; }
-                                this.rigidbody.AddForce(new Vector3(0, (this.transform.position.y - 弹道高度) / 20, 0));
+                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 10) { 转为俯冲姿态 = true; }
+                                this.rigidbody.AddForce(new Vector3(0, -(this.transform.position.y - 弹道高度), 0));
                                 this.transform.LookAt(targetPoint);
                             }
-                            else if (!转为俯冲姿态) { 弹道高度 = this.transform.position.y; if (this.transform.position.y > 5) { 弹道高度 += 5; } }//当没有在俯冲而且弹道高度=0的时候
+                            else if (!转为俯冲姿态) { 弹道高度 = this.transform.position.y; if (this.transform.position.y < 10) { 弹道高度 += 9; } }//当没有在俯冲而且弹道高度=0的时候
                             else
                             {
                                 this.transform.LookAt(targetPoint);
