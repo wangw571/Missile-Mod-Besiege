@@ -91,8 +91,8 @@ namespace Blocks
 
         protected override void OnSimulateStart()
         {
-            sv = 0.5f;
-            svplus = 0.1f;
+            sv = 1f;
+            svplus = 1f;
             弹道高度 = 0;
             炸 = false;
             countedBurning = false;
@@ -104,15 +104,18 @@ namespace Blocks
             检测错过 = false;
             currentTarget = null;
 
-            Trail = new GameObject();
+            Trail = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             Trail.name = "MissileTrail";
-            Trail.transform.position = this.transform.position + this.transform.forward;
+            Destroy(Trail.GetComponent<Rigidbody>());
+            Trail.transform.position = this.transform.position; 
             Trail.AddComponent<TrailRenderer>();
-            Trail.GetComponent<TrailRenderer>().startWidth = 0.2f;
-            Trail.GetComponent<TrailRenderer>().endWidth = 0.7f;
+            Trail.GetComponent<TrailRenderer>().startWidth = 0.7f;
+            Trail.GetComponent<TrailRenderer>().endWidth = 1.3f;
             Trail.GetComponent<TrailRenderer>().time = 0f;
+            Trail.GetComponent<TrailRenderer>().materials = Trail.GetComponent<Renderer>().materials;
+            Trail.transform.localScale = Vector3.zero;
             Trail.transform.SetParent(this.transform);
-            Trail.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            //Trail.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             //Trail.GetComponent<TrailRenderer>().autodestruct = true;
 
             发射 = false;
@@ -124,7 +127,7 @@ namespace Blocks
         }
         protected override void OnSimulateUpdate()
         {
-            Trail.GetComponent<TrailRenderer>().material.color = Color.white;
+            //Trail.GetComponent<TrailRenderer>().material.color = Color.white;
             if (Input.GetKey(key1))
             {
                 if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitt, float.PositiveInfinity))
@@ -148,10 +151,11 @@ namespace Blocks
                         Ray 阻碍检测ray = new Ray(this.transform.position + (targetPoint - this.transform.position).normalized, (targetPoint - this.transform.position));
                         if (Physics.Raycast(阻碍检测ray, out hitt2, Mathf.Infinity))
                         {
-                            if (hitt2.transform.gameObject != currentTarget ^ !this.GetComponent<MyBlockInfo>().toggleModeEnabled)
+                            //Debug.DrawLine(this.transform.position + (targetPoint - this.transform.position).normalized, (targetPoint - this.transform.position), Color.red);
+                            if (hitt2.transform.gameObject.name != currentTarget.name ^ !this.GetComponent<MyBlockInfo>().toggleModeEnabled)
                             {
                                 mode = 0;
-                                Debug.Log(hitt2.transform.name);
+                                //Debug.Log(hitt2.transform.name);
                             }
                         }
                     }
@@ -170,7 +174,7 @@ namespace Blocks
                     targetPoint = currentTarget.transform.position - difftgt;
                     launchtime += Time.fixedDeltaTime;
                     //this.GetComponent<FireTag>().Ignite();//点火
-                    GetComponent<Rigidbody>().AddForce(transform.forward * sv,ForceMode.Impulse);
+                    GetComponent<Rigidbody>().AddForce(transform.forward * sv);
                     sv += svplus;
                     svplus *= 0.99f;
                     if (sv > 100) { sv = 100; }
@@ -181,10 +185,10 @@ namespace Blocks
                         if (this.GetComponent<MyBlockInfo>().toggleModeEnabled) { mode = 0; }
                         if (mode == 4)
                         {//运行模式判断
-                            if (diff.y > 5) { mode = 1; Debug.Log(mode + "Mode"); }
-                            else if (currentTarget.GetComponent<Rigidbody>().velocity.sqrMagnitude > 400) { mode = 3; Debug.Log(mode + "Mode"); }
+                            if (currentTarget.GetComponent<Rigidbody>().velocity.sqrMagnitude > 25) { mode = 3; Debug.Log(mode + "Mode"); svplus = 10; }
+                            else if (diff.y > 5) { mode = 1; Debug.Log(mode + "Mode"); Debug.Log(currentTarget.GetComponent<Rigidbody>().velocity.sqrMagnitude); }
                             else if (diff.y < 5) { mode = 2; Debug.Log(mode + "Mode"); }
-                            else { mode = 0; Debug.Log(mode + "Mode"); }
+                            else { mode = 0; Debug.Log("0Mode"); }
                         }
 
 
@@ -208,6 +212,7 @@ namespace Blocks
                                     Ray 检测ray = new Ray(new Vector3(this.transform.position.x, 弹道高度, this.transform.position.z), targetPoint - new Vector3(this.transform.position.x, 弹道高度).normalized);
                                     if (Physics.Raycast(检测ray, out hitt3, Mathf.Infinity))
                                     {
+                                        Debug.DrawLine(new Vector3(this.transform.position.x, 弹道高度, this.transform.position.z), targetPoint,Color.red);
                                         if (hitt3.transform.gameObject != currentTarget) { 弹道高度 += 1; Debug.Log("higher!"); continue; }
                                     }
                                     i++;
@@ -218,7 +223,8 @@ namespace Blocks
                             {
                                 this.transform.LookAt(targetPoint);
                                 this.GetComponent<Rigidbody>().useGravity = true;
-                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 13) { 检测错过 = true; }
+                                if (Vector3.Distance(this.transform.position, targetPoint) < 7) { 炸 = true; }
+                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 17) { 检测错过 = true; }
                             }//开始俯冲，将目光放在目标上
                             if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) > 15 && 转为俯冲姿态 && 检测错过) { 转为俯冲姿态 = false; 检测错过 = false; if (diff.y > 7) { mode = 2; 弹道高度 = 0; } }//当超过目标太远，重设姿态
                         }//低高度模式
@@ -229,7 +235,7 @@ namespace Blocks
                             if (弹道高度 != 0 && !转为俯冲姿态)//保持飞行
                             {
                                 if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 30) { 转为俯冲姿态 = true; }
-                                this.GetComponent<Rigidbody>().AddForce(new Vector3(0, (this.transform.position.y - 弹道高度) / 20, 0));
+                                //this.GetComponent<Rigidbody>().AddForce(new Vector3(0, (this.transform.position.y - 弹道高度) / 20, 0));
                                 this.transform.LookAt(targetPoint);
                                 this.GetComponent<Rigidbody>().useGravity = false;
                             }
@@ -237,7 +243,8 @@ namespace Blocks
                             else
                             {
                                 this.transform.LookAt(targetPoint);
-                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 13) { 检测错过 = true; }
+                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 17) { 检测错过 = true; }
+                                if (Vector3.Distance(this.transform.position, targetPoint) < 7) { 炸 = true; }
                                 this.GetComponent<Rigidbody>().useGravity = true;
                             }//开始俯冲，将目光放在目标上
                             if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) > 15 && 转为俯冲姿态 && 检测错过) { 转为俯冲姿态 = false; 检测错过 = false; if (diff.y < -7) { mode = 1; 弹道高度 = 0; } }//当超过目标太远，重设姿态
@@ -246,43 +253,43 @@ namespace Blocks
 
                         else if (mode == 3)
                         {
-
-                            Vector3 hitPoint = Vector3.zero;//存放命中点坐标
-                                                            //假设飞机物体是aircraft,炮塔物体是gun 两者间的方向向量就是两种世界坐标相减
-                            Vector3 D = this.transform.position - targetPoint;
-                            //用飞机transform的TransformDirection方法把前进方向变换到世界坐标，就是飞机飞行的世界方向向量了
-                            Vector3 targetDirection = currentTarget.transform.TransformDirection(Vector3.forward);
-                            //再用Vector3.Angle方法求出与飞机前进方向之间的夹角
-                            float THETA = Vector3.Angle(D, targetDirection);
-                            Vector3 导弹速度 = this.GetComponent<Rigidbody>().velocity;
-                            Vector3 目标速度 = currentTarget.GetComponent<Rigidbody>().velocity;
-                            float DD = D.magnitude;//D是飞机炮塔间方向向量，D的magnitued就是两种间距离
-                            float A = 1 - Mathf.Pow((float)(Math.Sqrt(导弹速度.x * 导弹速度.x + 导弹速度.z * 导弹速度.z) / Math.Sqrt(目标速度.x * 目标速度.x + 目标速度.z * 目标速度.z)), 2);//假设炮弹的速度是gunVeloctiy飞机的飞行线速度是aircraftVeloctiy
-                            float B = -(2 * DD * Mathf.Cos(THETA * Mathf.Deg2Rad));//要变换成弧度
-                            float C = DD * DD;
-                            float DELTA = B * B - 4 * A * C;
+                            
+                        Vector3 hitPoint = targetPoint;//存放命中点坐标
+                                    //假设飞机物体是aircraft,炮塔物体是gun 两者间的方向向量就是两种世界坐标相减
+                                    Vector3 D = this.transform.position - targetPoint;
+                                    //用飞机transform的TransformDirection方法把前进方向变换到世界坐标，就是飞机飞行的世界方向向量了
+                                    Vector3 targetDirection = currentTarget.transform.TransformDirection(Vector3.forward);
+                                    //再用Vector3.Angle方法求出与飞机前进方向之间的夹角
+                                    float THETA = Vector3.Angle(D, targetDirection);
+                                    Vector3 导弹速度 = this.GetComponent<Rigidbody>().velocity;
+                                    Vector3 目标速度 = currentTarget.GetComponent<Rigidbody>().velocity;
+                                    float DD = D.magnitude;//D是飞机炮塔间方向向量，D的magnitued就是两种间距离
+                                    float A = 1 - Mathf.Pow((float)(Math.Sqrt(导弹速度.x * 导弹速度.x + 导弹速度.z * 导弹速度.z) / Math.Sqrt(目标速度.x * 目标速度.x + 目标速度.z * 目标速度.z)), 2);//假设炮弹的速度是gunVeloctiy飞机的飞行线速度是aircraftVeloctiy
+                                    float B = -(2 * DD * Mathf.Cos(THETA * Mathf.Deg2Rad));//要变换成弧度
+                                    float C = DD * DD;
+                                    float DELTA = B * B - 4 * A * C;
                             if (DELTA >= 0)
                             {//如果DELTA小于0，无解
                                 float F1 = (-B + Mathf.Sqrt(B * B - 4 * A * C)) / (2 * A);
                                 float F2 = (-B - Mathf.Sqrt(B * B - 4 * A * C)) / (2 * A);
-                                if (F1 < F2)//取较小的一个
+                                if (F1 > F2 ^ F1 < 0)
+                                {//取较小的一个
                                     F1 = F2;
+                                }
                                 //命中点位置等于 飞机初始位置加上计算出F边长度乘以飞机前进的方向向量，这个乘法等于把前进的距离变换成世界坐标的位移
                                 hitPoint = targetPoint + targetDirection * F1;
                             }//一大堆式子
+                            else { hitPoint = targetPoint; }
                             if (!转为俯冲姿态)//保持飞行,关闭重力影响
                             {
                                 this.transform.LookAt(hitPoint);
-                                this.GetComponent<Rigidbody>().AddForce(new Vector3(0, (this.transform.position.y - 弹道高度) / 20, 0));
-                                弹道高度 = hitPoint.y + 3;
+                                this.GetComponent<Rigidbody>().velocity = diff.normalized * sv;
                                 this.GetComponent<Rigidbody>().useGravity = false;
                             }
                             else
                             {
-                                this.GetComponent<Rigidbody>().useGravity = true;
-                                this.transform.LookAt(hitPoint);
-                                if (Vector3.Distance(transform.position, hitPoint) <= 3) { 炸 = true; }
-                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 13) { 检测错过 = true; }
+                                if (diff.sqrMagnitude < 50) { 炸 = true; }
+                                if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) < 17) { 检测错过 = true; }
                             }//开始俯冲，将目光放在目标上，使用重力影响
                             if (Math.Abs(diff.y - Math.Sqrt(diff.x * diff.x + diff.z * diff.z)) > 15 && 转为俯冲姿态 && 检测错过) { 转为俯冲姿态 = false; 检测错过 = false; }//当超过目标太远，重设姿态
 
@@ -294,7 +301,6 @@ namespace Blocks
                             {
                                 //this.transform.position.RotateTowards(this.transform.position,targetPoint,2f,Mathf.Infinity);
                                 this.transform.LookAt(targetPoint);
-                                sv = 15;
                                 if (diff.y > 10) { 转为俯冲姿态 = false; }
                             }
                             else if (Vector3.Distance(transform.position, targetPoint) >= 5)
@@ -311,7 +317,16 @@ namespace Blocks
                             }
                         }
                     }
-                    if (Vector3.Distance(transform.position, targetPoint) <= 5f) { 炸 = true; }
+                    if (Vector3.Distance(transform.position, targetPoint) <= 7f)
+                    {
+                        this.transform.LookAt(targetPoint);
+                        this.GetComponent<Rigidbody>().AddForce(diff * sv,ForceMode.VelocityChange);
+                        Debug.Log("Keeping Range!");
+                    }
+                    if (Vector3.Distance(transform.position, targetPoint) <= 0.3f)
+                    {
+                        炸 = true;
+                    }
 
 
 
@@ -350,7 +365,7 @@ namespace Blocks
         }
         void OnCollisionEnter(Collision collision)
         {
-            if (发射 == true && launchtime > 0.2)
+            if (发射 == true && launchtime > 0.2 && collision.gameObject.name != "MissileTrail")
             {
                 炸 = true;
             }
